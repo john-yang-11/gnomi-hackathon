@@ -1,0 +1,22 @@
+{
+  "started_at": "2026-06-05T15:01:31.331509",
+  "domains_crawled": 2,
+  "total_fetched": 45,
+  "success_rate": "100.0%",
+  "block_rate": "0.0%",
+  "block_reasons": {},
+  "skipped_by_classifier": 0,
+  "articles_extracted": 5,
+  "duplicates_removed": 39,
+  "duplicate_rate": "88.6%",
+  "dupe_breakdown": {
+    "duplicate_content": 39
+  },
+  "low_quality_dropped": 1,
+  "avg_quality_score": 0.607,
+  "quality_distribution": {
+    "high (>0.7)": 1,
+    "medium (0.4\u20130.7)": 4,
+    "low (<0.4)": 0
+  }
+}
