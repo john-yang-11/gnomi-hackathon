@@ -13,19 +13,28 @@ Public surface:
     due_domain(domain)               -> (ok, wait_seconds) per-domain throttle check
 """
 import json
+import os
+
 import ftfy
 import psycopg2
 from psycopg2.extras import Json
 
-DATABASE_URL = "postgresql://postgres:7y3BG6bfCj0IXP8D@db.joprpfvwzmibmfexgkdp.supabase.co:5432/postgres"
-
 _conn = None
+
+
+def _database_url() -> str:
+    url = os.environ.get("DATABASE_URL")
+    if not url:
+        raise RuntimeError(
+            "DATABASE_URL is not set. Copy .env.example to .env and add your Supabase connection string."
+        )
+    return url
 
 
 def get_conn():
     global _conn
     if _conn is None or _conn.closed:
-        _conn = psycopg2.connect(DATABASE_URL, connect_timeout=10)
+        _conn = psycopg2.connect(_database_url(), connect_timeout=10)
         _conn.autocommit = True
     return _conn
 
@@ -198,7 +207,7 @@ def iter_articles_for_dedup(batch: int = 500):
     """
     read_conn = None
     try:
-        read_conn = psycopg2.connect(DATABASE_URL, connect_timeout=10)
+        read_conn = psycopg2.connect(_database_url(), connect_timeout=10)
         # NOT autocommit: a transaction is required for a server-side cursor,
         # which streams rows in chunks instead of loading the whole table.
         with read_conn.cursor(name="dedup_loader") as cur:

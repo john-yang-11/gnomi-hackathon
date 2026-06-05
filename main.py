@@ -9,6 +9,10 @@ Usage:
 """
 import argparse
 import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
 os.environ.setdefault("SCRAPY_SETTINGS_MODULE", "settings")
 
 from cleancrawl.runner import Runner

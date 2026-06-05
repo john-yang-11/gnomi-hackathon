@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+articles.jsonl
+crawl_stats.json
+.scrapy/
