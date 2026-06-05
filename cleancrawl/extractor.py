@@ -30,7 +30,43 @@ class Article:
     headings: list[str]
     source_domain: str
     quality_score: float
+    content_type: str = "article"          # news | blog | wiki | article
     quality_reasons: dict = field(default_factory=dict)
+
+
+# Map JSON-LD schema.org @type to our content_type buckets
+_SCHEMA_TO_TYPE = {
+    "NewsArticle": "news",
+    "ReportageNewsArticle": "news",
+    "BlogPosting": "blog",
+    "TechArticle": "blog",
+}
+
+
+def _content_type(url: str, jsonld_type: str | None) -> str:
+    """
+    Classify the *kind* of content: news | blog | wiki | article.
+    Priority: explicit wiki URL → JSON-LD schema type → URL path hint → 'article'.
+    """
+    path = urlparse(url).path.lower()
+
+    # Wikis rarely declare a useful schema type; the URL is the best signal.
+    if "/wiki/" in path or path.startswith("/wiki"):
+        return "wiki"
+
+    # JSON-LD schema.org type is the most authoritative signal for news/blog.
+    if jsonld_type:
+        t = jsonld_type[0] if isinstance(jsonld_type, list) else jsonld_type
+        if t in _SCHEMA_TO_TYPE:
+            return _SCHEMA_TO_TYPE[t]
+
+    # Fall back to URL path hints.
+    if "/news/" in path or "/article/" in path or "noticia" in path or "actualite" in path:
+        return "news"
+    if "/blog/" in path or "/post/" in path or "/posts/" in path:
+        return "blog"
+
+    return "article"
 
 
 def _parse_tree(html: str):
@@ -304,6 +340,7 @@ def extract(html: str, url: str) -> Article | None:
     }
 
     score, reasons = _quality_score(article_dict)
+    content_type = _content_type(url, jsonld.get("@type"))
 
     return Article(
         url=url,
@@ -317,5 +354,6 @@ def extract(html: str, url: str) -> Article | None:
         headings=_headings(tree),
         source_domain=urlparse(url).netloc,
         quality_score=score,
+        content_type=content_type,
         quality_reasons=reasons,
     )

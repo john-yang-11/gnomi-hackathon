@@ -64,11 +64,11 @@ def save_article(article: dict):
                 INSERT INTO articles (
                     url, canonical_url, title, author, publish_date,
                     language, summary, main_text, headings,
-                    source_domain, quality_score, quality_reasons
+                    source_domain, quality_score, content_type, quality_reasons
                 ) VALUES (
                     %(url)s, %(canonical_url)s, %(title)s, %(author)s, %(publish_date)s,
                     %(language)s, %(summary)s, %(main_text)s, %(headings)s,
-                    %(source_domain)s, %(quality_score)s, %(quality_reasons)s
+                    %(source_domain)s, %(quality_score)s, %(content_type)s, %(quality_reasons)s
                 )
                 ON CONFLICT (url) DO UPDATE SET
                     canonical_url  = EXCLUDED.canonical_url,
@@ -80,11 +80,13 @@ def save_article(article: dict):
                     main_text      = EXCLUDED.main_text,
                     headings       = EXCLUDED.headings,
                     quality_score  = EXCLUDED.quality_score,
+                    content_type   = EXCLUDED.content_type,
                     quality_reasons = EXCLUDED.quality_reasons,
                     crawled_at     = now()
                 RETURNING id
             """, {
                 **article,
+                "content_type": article.get("content_type", "article"),
                 "headings": Json(article.get("headings", [])),
                 "quality_reasons": Json(article.get("quality_reasons", {})),
             })

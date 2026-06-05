@@ -442,6 +442,7 @@ class Runner:
             "headings": article.headings,
             "source_domain": article.source_domain,
             "quality_score": article.quality_score,
+            "content_type": article.content_type,
             "quality_reasons": article.quality_reasons,
         }
         article_id = db.save_article(record)
