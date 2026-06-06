@@ -137,7 +137,8 @@ def _extract_links_from_html(html: str, base_url: str, base_domain: str) -> list
 
 class Runner:
     def __init__(self, rate_limit: float = 1.5, limit: int = 0,
-                 min_quality: float = 0.25, depth_limit: int = 5):
+                 min_quality: float = 0.25, depth_limit: int = 5,
+                 translate: bool = False):
         # Disable the Fetcher's internal throttle — the runner already
         # throttles per-domain via db.due_domain()/touch_domain(). Having both
         # made every fetch sleep twice (~2x slower).
@@ -148,6 +149,7 @@ class Runner:
         self.limit = limit          # 0 = no limit
         self.min_quality = min_quality
         self.depth_limit = depth_limit
+        self.translate = translate   # --translate: add English fields for non-EN articles
 
     # ─────────────────────────────────────────────────────────
     # Seeding
@@ -445,6 +447,12 @@ class Runner:
             "content_type": article.content_type,
             "quality_reasons": article.quality_reasons,
         }
+
+        # ── Optional English translation (--translate) ───────
+        if self.translate:
+            from cleancrawl.translate import translate_article
+            translate_article(record)   # adds *_en fields for non-EN articles
+
         article_id = db.save_article(record)
         if article_id:
             db.mark_queue_status(url, "done", article_id=article_id)

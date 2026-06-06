@@ -32,6 +32,8 @@ def main():
                         help="Max link-follow depth (default 5)")
     parser.add_argument("--resume", action="store_true",
                         help="Skip seeding — resume from existing crawl_queue")
+    parser.add_argument("--translate", action="store_true",
+                        help="Add English translations (title/summary/body) for non-English articles")
     parser.add_argument("--scrapy", action="store_true",
                         help="Use legacy Scrapy spider instead of queue runner")
     args = parser.parse_args()
@@ -57,6 +59,7 @@ def main():
         limit=args.limit,
         min_quality=args.quality,
         depth_limit=args.depth,
+        translate=args.translate,
     )
 
     try:

@@ -64,11 +64,13 @@ def save_article(article: dict):
                 INSERT INTO articles (
                     url, canonical_url, title, author, publish_date,
                     language, summary, main_text, headings,
-                    source_domain, quality_score, content_type, quality_reasons
+                    source_domain, quality_score, content_type, quality_reasons,
+                    title_en, summary_en, main_text_en, translated_to
                 ) VALUES (
                     %(url)s, %(canonical_url)s, %(title)s, %(author)s, %(publish_date)s,
                     %(language)s, %(summary)s, %(main_text)s, %(headings)s,
-                    %(source_domain)s, %(quality_score)s, %(content_type)s, %(quality_reasons)s
+                    %(source_domain)s, %(quality_score)s, %(content_type)s, %(quality_reasons)s,
+                    %(title_en)s, %(summary_en)s, %(main_text_en)s, %(translated_to)s
                 )
                 ON CONFLICT (url) DO UPDATE SET
                     canonical_url  = EXCLUDED.canonical_url,
@@ -82,6 +84,10 @@ def save_article(article: dict):
                     quality_score  = EXCLUDED.quality_score,
                     content_type   = EXCLUDED.content_type,
                     quality_reasons = EXCLUDED.quality_reasons,
+                    title_en       = EXCLUDED.title_en,
+                    summary_en     = EXCLUDED.summary_en,
+                    main_text_en   = EXCLUDED.main_text_en,
+                    translated_to  = EXCLUDED.translated_to,
                     crawled_at     = now()
                 RETURNING id
             """, {
@@ -89,6 +95,10 @@ def save_article(article: dict):
                 "content_type": article.get("content_type", "article"),
                 "headings": Json(article.get("headings", [])),
                 "quality_reasons": Json(article.get("quality_reasons", {})),
+                "title_en": article.get("title_en"),
+                "summary_en": article.get("summary_en"),
+                "main_text_en": article.get("main_text_en"),
+                "translated_to": article.get("translated_to"),
             })
             return str(cur.fetchone()[0])
     except Exception as e:

@@ -51,6 +51,30 @@ CHALLENGE_PHRASES = (
     "verificando seu navegador", "controllo del browser",
 )
 
+# High-confidence bot-WALL phrases (DataDome/PerimeterX/rate-limit pages).
+# These NEVER appear in a real article, so they trigger a block regardless of
+# page length — unlike captcha *widgets*, which can be embedded in real pages.
+BOT_WALL_PHRASES = (
+    # English
+    "your traffic has been identified as automated",
+    "traffic has been identified as automated",
+    "unusual traffic", "automated traffic", "detected unusual activity",
+    "suspicious activity has been detected", "bot detected",
+    "to continue, please verify", "please verify you are a human",
+    # French
+    "votre trafic a été identifié comme automatisé",
+    "trafic a été identifié comme automatisé", "trafic automatisé",
+    "activité suspecte",
+    # Spanish
+    "tráfico automatizado", "actividad inusual", "actividad sospechosa",
+    # German
+    "automatisierter datenverkehr", "ungewöhnlicher datenverkehr",
+    # Portuguese
+    "tráfego automatizado", "atividade incomum",
+    # Italian
+    "traffico automatizzato", "attività insolita",
+)
+
 
 @dataclass
 class FetchResult:
@@ -112,6 +136,12 @@ class Fetcher:
         html = response.text.lower()
         h = dict(response.headers)
         body_len = len(response.text.strip())
+
+        # High-confidence bot walls — these phrases never appear in real
+        # articles, so flag regardless of page length (catches DataDome /
+        # rate-limit pages like Le Monde's "traffic identified as automated").
+        if any(p in html for p in BOT_WALL_PHRASES):
+            return True, "bot_wall"
 
         # A full-content 200 page is NOT blocked just because it embeds a
         # captcha/login widget (newsletter, comments). Only treat captcha/
