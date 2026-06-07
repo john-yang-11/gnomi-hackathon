@@ -1,14 +1,15 @@
 name: Recrawl
 
-# Runs the crawler on a schedule to DRAIN whatever pg_cron has re-enqueued.
-#   - pg_cron (in Supabase) re-enqueues stale articles at the top of each hour
-#   - this workflow runs at :15 and crawls the now-pending URLs
-# Together: a fully hands-off, self-refreshing crawl. No server required.
+# Drains whatever pg_cron has re-enqueued (stale articles) by running the crawler.
+#
+# MANUAL by default — trigger it from the GitHub "Actions" tab when you want.
+# To make the recrawl loop fully automatic, uncomment the `schedule:` block
+# below; paired with the pg_cron job it becomes hands-off (no server needed).
 
 on:
-  schedule:
-    - cron: "15 * * * *"      # every hour at :15 (after pg_cron's :00 re-enqueue)
-  workflow_dispatch:           # also allow manual "Run workflow" from the GitHub UI
+  workflow_dispatch:           # run on-demand from the GitHub UI
+  # schedule:
+  #   - cron: "15 * * * *"     # uncomment to auto-run hourly (after pg_cron's :00 re-enqueue)
 
 jobs:
   recrawl:

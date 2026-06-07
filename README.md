@@ -196,6 +196,32 @@ More in `migrations/monitoring_queries.sql`.
 
 ---
 
+## Deduplication (4 layers)
+
+Checks run cheapest-first; the first hit wins, and every catch is logged to the `duplicates` table with its reason.
+
+1. **URL** — aggressive normalization collapses the many shapes of one article: tracking params, `www`, `http`/`https`, AMP / mobile / print path segments, trailing slashes, default ports.
+2. **Exact content** — SHA-256 of the clean article text.
+3. **Near-duplicate** — MinHash LSH at 80% Jaccard similarity, with **CJK-aware shingling** (character n-grams for Chinese/Japanese/Korean, word n-grams for Latin) so syndicated/reposted copies are caught across languages.
+4. **Title + date** — same normalized title published on the same date, catching syndicated copies whose body was reformatted enough to slip past the near-dup check.
+
+The fingerprint index is rehydrated from the database at startup (`warm_dedup`), so dedup survives across runs and `--resume`.
+
+---
+
+## Freshness-aware recrawl (self-refreshing)
+
+The system is built to re-crawl on its own and keep content fresh — split into two halves:
+
+- **Scheduling (live, in the database):** a `pg_cron` job (`migrations/003_recrawl_pgcron.sql`) runs hourly inside Supabase and re-enqueues `done` articles whose freshness window has elapsed, by content type — **news 6h, blog 48h, wiki 7d, article 24h**. No server, no app code.
+- **Execution:** running the crawler (`python main.py --resume`) drains the re-enqueued URLs. Dedup handles the rest — unchanged pages hit the `duplicate` path, changed pages produce updated records.
+
+To make the loop **fully hands-off**, the included GitHub Actions workflow (`.github/workflows/recrawl.yml`) can run the crawler on a schedule (manual-trigger by default; uncomment the `schedule:` block to auto-run hourly). Together: the database decides *what* to recrawl, the workflow does it, with zero human involvement.
+
+A complementary signal: the **freshness sub-score** (part of quality scoring) applies an age-decay curve, so stale content naturally ranks lower over time even between recrawls.
+
+---
+
 ## Multilingual support
 
 Classification, anti-bot detection, language detection, and quality scoring all work across languages — European (EN/ES/FR/DE/PT/IT) and CJK/Arabic scripts. Percent-encoded non-Latin URLs are decoded, CJK quality thresholds are scaled (denser scripts), and block-page phrases are matched in multiple languages.
