@@ -212,10 +212,10 @@ def release_in_progress() -> int:
 
 def iter_articles_for_dedup(batch: int = 500):
     """
-    Stream (url, main_text) for every stored article so a fresh DedupStore can
-    be rehydrated at startup. Uses its own short-lived, non-autocommit
-    connection because server-side (named) cursors require a transaction —
-    the shared module connection runs in autocommit mode.
+    Stream (url, main_text, title, publish_date) for every stored article so a
+    fresh DedupStore can be rehydrated at startup. Uses its own short-lived,
+    non-autocommit connection because server-side (named) cursors require a
+    transaction — the shared module connection runs in autocommit mode.
     """
     read_conn = None
     try:
@@ -224,9 +224,12 @@ def iter_articles_for_dedup(batch: int = 500):
         # which streams rows in chunks instead of loading the whole table.
         with read_conn.cursor(name="dedup_loader") as cur:
             cur.itersize = batch
-            cur.execute("SELECT url, main_text FROM articles WHERE main_text IS NOT NULL")
-            for url, text in cur:
-                yield url, text
+            cur.execute(
+                "SELECT url, main_text, title, publish_date "
+                "FROM articles WHERE main_text IS NOT NULL"
+            )
+            for url, text, title, publish_date in cur:
+                yield url, text, title, publish_date
     except Exception as e:
         print(f"[DB] iter_articles_for_dedup failed: {e}")
     finally:

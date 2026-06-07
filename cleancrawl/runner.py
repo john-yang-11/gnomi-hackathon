@@ -267,10 +267,11 @@ class Runner:
         syndicated content it has seen before.
         """
         loaded = 0
-        for url, text in db.iter_articles_for_dedup():
+        for url, text, title, publish_date in db.iter_articles_for_dedup():
             self.dedup.register_url(url)
             if text:
                 self.dedup.register_content(text, doc_id=url)
+            self.dedup.register_title_date(title, publish_date, url)
             loaded += 1
         if loaded:
             print(f"[Dedup] Rehydrated {loaded} existing articles into dedup store")
@@ -412,12 +413,15 @@ class Runner:
 
         # ── Dedup ────────────────────────────────────────────
         check_url = article.canonical_url or url
-        is_dup, dup_reason = self.dedup.check_and_register(check_url, article.main_text)
+        is_dup, dup_reason = self.dedup.check_and_register(
+            check_url, article.main_text,
+            title=article.title, publish_date=article.publish_date,
+        )
         if is_dup:
             dup_type = (
-                "url" if "url" in dup_reason
+                "url" if "duplicate_url" in dup_reason
                 else "exact_content" if "exact_hash" in dup_reason
-                else "near_content"
+                else "near_content"   # near-dup OR title+date both bucket here
             )
             db.save_duplicate(
                 url=url, dup_type=dup_type, canonical_url=article.canonical_url,

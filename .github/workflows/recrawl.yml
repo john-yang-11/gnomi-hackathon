@@ -1,0 +1,31 @@
+name: Recrawl
+
+# Runs the crawler on a schedule to DRAIN whatever pg_cron has re-enqueued.
+#   - pg_cron (in Supabase) re-enqueues stale articles at the top of each hour
+#   - this workflow runs at :15 and crawls the now-pending URLs
+# Together: a fully hands-off, self-refreshing crawl. No server required.
+
+on:
+  schedule:
+    - cron: "15 * * * *"      # every hour at :15 (after pg_cron's :00 re-enqueue)
+  workflow_dispatch:           # also allow manual "Run workflow" from the GitHub UI
+
+jobs:
+  recrawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20        # safety cap so a hung run can't run forever
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Recrawl pending URLs
+        env:
+          # Provided by the repo secret you add (Settings → Secrets → Actions)
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python main.py --resume --limit 50
